@@ -84,7 +84,7 @@ fun ProductListScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             when (uiState) {
                 ProductListUiState.Loading -> LoadingContent()
-                ProductListUiState.Empty -> EmptyContent()
+                is ProductListUiState.Empty -> EmptyContent(query = uiState.query)
                 is ProductListUiState.Error -> ErrorContent(
                     message = stringResource(uiState.messageRes),
                     onRetry = onRetry,
@@ -136,10 +136,15 @@ private fun LoadingContent() = CenteredContent {
 }
 
 @Composable
-private fun EmptyContent() = CenteredContent {
+private fun EmptyContent(query: String) = CenteredContent {
     Text(
-        text = stringResource(R.string.product_list_empty),
+        text = if (query.isEmpty()) {
+            stringResource(R.string.product_list_empty)
+        } else {
+            stringResource(R.string.product_search_no_results, query)
+        },
         style = MaterialTheme.typography.bodyLarge,
+        textAlign = TextAlign.Center,
     )
 }
 
