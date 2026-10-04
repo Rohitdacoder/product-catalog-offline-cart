@@ -7,7 +7,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.toRoute
+import com.product_catalog_offline_cart.ui.cart.CartRoute
 import com.product_catalog_offline_cart.ui.details.ProductDetailRoute
 import com.product_catalog_offline_cart.ui.details.ProductDetailViewModel
 import com.product_catalog_offline_cart.ui.products.ProductListRoute
@@ -25,10 +27,10 @@ fun AppNavHost(modifier: Modifier = Modifier) {
         composable<ProductListDestination> { backStackEntry ->
             ProductListRoute(
                 onProductClick = { productId ->
-                    // Ignore extra taps while the transition to details is already running.
-                    if (backStackEntry.lifecycle.currentState == Lifecycle.State.RESUMED) {
-                        navController.navigate(ProductDetailDestination(productId))
-                    }
+                    if (backStackEntry.isResumed()) navController.navigate(ProductDetailDestination(productId))
+                },
+                onCartClick = {
+                    if (backStackEntry.isResumed()) navController.navigate(CartDestination)
                 },
             )
         }
@@ -39,9 +41,19 @@ fun AppNavHost(modifier: Modifier = Modifier) {
                 viewModel = viewModel(factory = ProductDetailViewModel.factory(productId)),
                 // navigateUp() never pops the start destination, so a double tap can't leave a blank screen.
                 onBack = { navController.navigateUp() },
-                // Cart persistence is added in the cart step; nothing is stored yet.
-                onAddToCart = { },
+            )
+        }
+
+        composable<CartDestination> {
+            CartRoute(
+                onBack = { navController.navigateUp() },
+                onContinueShopping = {
+                    navController.popBackStack(route = ProductListDestination, inclusive = false)
+                },
             )
         }
     }
 }
+
+/** Ignore extra taps while a navigation transition away from this entry is already running. */
+private fun NavBackStackEntry.isResumed(): Boolean = lifecycle.currentState == Lifecycle.State.RESUMED

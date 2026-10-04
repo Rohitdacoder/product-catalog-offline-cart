@@ -17,15 +17,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -50,24 +56,78 @@ import com.product_catalog_offline_cart.ui.theme.ProductcatalogofflinecartTheme
 @Composable
 fun ProductListRoute(
     onProductClick: (productId: Int) -> Unit,
+    onCartClick: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProductListViewModel = viewModel(factory = ProductListViewModel.Factory),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val cartItemCount by viewModel.cartItemCount.collectAsStateWithLifecycle()
 
     ProductListScreen(
         uiState = uiState,
         searchQuery = searchQuery,
+        cartItemCount = cartItemCount,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onRetry = viewModel::retry,
         onProductClick = onProductClick,
+        onCartClick = onCartClick,
         modifier = modifier,
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
+    uiState: ProductListUiState,
+    searchQuery: String,
+    cartItemCount: Int,
+    onSearchQueryChange: (String) -> Unit,
+    onRetry: () -> Unit,
+    onProductClick: (productId: Int) -> Unit,
+    onCartClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.products_title)) },
+                actions = { CartButton(itemCount = cartItemCount, onClick = onCartClick) },
+            )
+        },
+    ) { innerPadding ->
+        ProductListContent(
+            uiState = uiState,
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            onRetry = onRetry,
+            onProductClick = onProductClick,
+            modifier = Modifier.padding(innerPadding),
+        )
+    }
+}
+
+@Composable
+private fun CartButton(itemCount: Int, onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        BadgedBox(
+            badge = {
+                if (itemCount > 0) {
+                    Badge { Text(if (itemCount > 99) "99+" else itemCount.toString()) }
+                }
+            },
+        ) {
+            Icon(
+                Icons.Filled.ShoppingCart,
+                contentDescription = stringResource(R.string.open_cart, itemCount),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProductListContent(
     uiState: ProductListUiState,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
@@ -256,9 +316,11 @@ private fun ProductListSuccessPreview() {
         ProductListScreen(
             uiState = ProductListUiState.Success(previewProducts),
             searchQuery = "",
+            cartItemCount = 5,
             onSearchQueryChange = {},
             onRetry = {},
             onProductClick = {},
+            onCartClick = {},
         )
     }
 }
@@ -270,9 +332,11 @@ private fun ProductListErrorPreview() {
         ProductListScreen(
             uiState = ProductListUiState.Error(R.string.error_network),
             searchQuery = "phone",
+            cartItemCount = 0,
             onSearchQueryChange = {},
             onRetry = {},
             onProductClick = {},
+            onCartClick = {},
         )
     }
 }

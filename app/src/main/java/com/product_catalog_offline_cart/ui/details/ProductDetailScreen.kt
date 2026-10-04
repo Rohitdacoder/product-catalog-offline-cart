@@ -28,15 +28,20 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,22 +53,33 @@ import com.product_catalog_offline_cart.R
 import com.product_catalog_offline_cart.domain.model.Product
 import com.product_catalog_offline_cart.ui.common.formatPrice
 import com.product_catalog_offline_cart.ui.theme.ProductcatalogofflinecartTheme
+import kotlinx.coroutines.flow.collectLatest
 
 /** Stateful entry point: connects the ViewModel to the stateless [ProductDetailScreen]. */
 @Composable
 fun ProductDetailRoute(
     viewModel: ProductDetailViewModel,
     onBack: () -> Unit,
-    onAddToCart: (Product) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        // collectLatest: a new tap replaces the snackbar that's showing instead of queueing behind it.
+        viewModel.cartMessages.collectLatest { messageRes ->
+            snackbarHostState.currentSnackbarData?.dismiss()
+            snackbarHostState.showSnackbar(context.getString(messageRes))
+        }
+    }
 
     ProductDetailScreen(
         uiState = uiState,
+        snackbarHostState = snackbarHostState,
         onBack = onBack,
         onRetry = viewModel::retry,
-        onAddToCart = onAddToCart,
+        onAddToCart = viewModel::addToCart,
         modifier = modifier,
     )
 }
@@ -72,6 +88,7 @@ fun ProductDetailRoute(
 @Composable
 fun ProductDetailScreen(
     uiState: ProductDetailUiState,
+    snackbarHostState: SnackbarHostState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onAddToCart: (Product) -> Unit,
@@ -79,6 +96,7 @@ fun ProductDetailScreen(
 ) {
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.product_details_title)) },
@@ -295,6 +313,7 @@ private fun ProductDetailSuccessPreview() {
     ProductcatalogofflinecartTheme {
         ProductDetailScreen(
             uiState = ProductDetailUiState.Success(previewProduct),
+            snackbarHostState = remember { SnackbarHostState() },
             onBack = {},
             onRetry = {},
             onAddToCart = {},
@@ -308,6 +327,7 @@ private fun ProductDetailErrorPreview() {
     ProductcatalogofflinecartTheme {
         ProductDetailScreen(
             uiState = ProductDetailUiState.Error(R.string.error_network),
+            snackbarHostState = remember { SnackbarHostState() },
             onBack = {},
             onRetry = {},
             onAddToCart = {},

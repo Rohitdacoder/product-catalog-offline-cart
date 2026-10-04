@@ -5,12 +5,14 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.product_catalog_offline_cart.R
+import com.product_catalog_offline_cart.data.repository.FakeCartRepository
 import com.product_catalog_offline_cart.data.repository.ProductRepository
 import com.product_catalog_offline_cart.domain.model.Product
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -37,6 +39,7 @@ class ProductDetailViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeProductRepository()
+    private val cartRepository = FakeCartRepository()
 
     @Before
     fun setUp() {
@@ -57,14 +60,14 @@ class ProductDetailViewModelTest {
 
     @Test
     fun `starts in Loading`() = runTest(dispatcher) {
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
 
         assertEquals(ProductDetailUiState.Loading, viewModel.uiState.value)
     }
 
     @Test
     fun `loads the product for the given id`() = runTest(dispatcher) {
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
 
         advanceUntilIdle()
 
@@ -76,7 +79,7 @@ class ProductDetailViewModelTest {
     fun `network failure shows network error`() = runTest(dispatcher) {
         repository.result = { throw IOException("offline") }
 
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
         advanceUntilIdle()
 
         assertEquals(ProductDetailUiState.Error(R.string.error_network), viewModel.uiState.value)
@@ -86,7 +89,7 @@ class ProductDetailViewModelTest {
     fun `http failure shows server error`() = runTest(dispatcher) {
         repository.result = { throw HttpException(Response.error<Any>(404, "".toResponseBody())) }
 
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
         advanceUntilIdle()
 
         assertEquals(ProductDetailUiState.Error(R.string.error_server), viewModel.uiState.value)
@@ -96,7 +99,7 @@ class ProductDetailViewModelTest {
     fun `unexpected failure shows generic error`() = runTest(dispatcher) {
         repository.result = { throw IllegalStateException("bad payload") }
 
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
         advanceUntilIdle()
 
         assertEquals(ProductDetailUiState.Error(R.string.error_unknown), viewModel.uiState.value)
@@ -105,7 +108,7 @@ class ProductDetailViewModelTest {
     @Test
     fun `retry after failure loads the product`() = runTest(dispatcher) {
         repository.result = { throw IOException("offline") }
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
         advanceUntilIdle()
 
         repository.result = { sampleProduct }
@@ -119,7 +122,7 @@ class ProductDetailViewModelTest {
     @Test
     fun `retry shows Loading while the request is in flight`() = runTest(dispatcher) {
         repository.result = { throw IOException("offline") }
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
         advanceUntilIdle()
 
         val pending = CompletableDeferred<Product>()
@@ -147,7 +150,7 @@ class ProductDetailViewModelTest {
         val store = ViewModelStore()
         val viewModel = ViewModelProvider.create(
             store,
-            viewModelFactory { initializer { ProductDetailViewModel(repository, PRODUCT_ID) } },
+            viewModelFactory { initializer { ProductDetailViewModel(repository, cartRepository, PRODUCT_ID) } },
         )[ProductDetailViewModel::class]
         val states = recordStates(viewModel)
         runCurrent()
@@ -177,7 +180,7 @@ class ProductDetailViewModelTest {
                 sampleProduct
             }
         }
-        val viewModel = ProductDetailViewModel(repository, PRODUCT_ID)
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
         val states = recordStates(viewModel)
         runCurrent()
 
@@ -186,6 +189,59 @@ class ProductDetailViewModelTest {
 
         assertTrue(firstCancelled)
         assertFalse(states.any { it is ProductDetailUiState.Error })
+        assertEquals(ProductDetailUiState.Success(sampleProduct), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `add to cart stores the product and confirms`() = runTest(dispatcher) {
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
+        advanceUntilIdle()
+
+        viewModel.addToCart(sampleProduct)
+        advanceUntilIdle()
+
+        assertEquals(listOf("add:$PRODUCT_ID"), cartRepository.calls)
+        assertEquals(1, cartRepository.items.value.single().quantity)
+        assertEquals(R.string.added_to_cart, viewModel.cartMessages.first())
+    }
+
+    @Test
+    fun `adding the same product twice increases quantity and confirms each time`() = runTest(dispatcher) {
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
+        val messages = mutableListOf<Int>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.cartMessages.toList(messages) }
+        advanceUntilIdle()
+
+        viewModel.addToCart(sampleProduct)
+        viewModel.addToCart(sampleProduct)
+        advanceUntilIdle()
+
+        assertEquals(2, cartRepository.items.value.single().quantity)
+        assertEquals(listOf(R.string.added_to_cart, R.string.added_to_cart), messages)
+    }
+
+    @Test
+    fun `add to cart failure shows failure message`() = runTest(dispatcher) {
+        cartRepository.addToCartError = IllegalStateException("disk full")
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
+        advanceUntilIdle()
+
+        viewModel.addToCart(sampleProduct)
+        advanceUntilIdle()
+
+        assertTrue(cartRepository.items.value.isEmpty())
+        assertEquals(R.string.add_to_cart_failed, viewModel.cartMessages.first())
+    }
+
+    @Test
+    fun `add to cart does not reload the product`() = runTest(dispatcher) {
+        val viewModel = ProductDetailViewModel(repository, cartRepository, PRODUCT_ID)
+        advanceUntilIdle()
+
+        viewModel.addToCart(sampleProduct)
+        advanceUntilIdle()
+
+        assertEquals(listOf(PRODUCT_ID), repository.requestedIds)
         assertEquals(ProductDetailUiState.Success(sampleProduct), viewModel.uiState.value)
     }
 

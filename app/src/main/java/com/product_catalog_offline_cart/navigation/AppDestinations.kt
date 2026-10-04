@@ -8,3 +8,6 @@ data object ProductListDestination
 
 @Serializable
 data class ProductDetailDestination(val productId: Int)
+
+@Serializable
+data object CartDestination

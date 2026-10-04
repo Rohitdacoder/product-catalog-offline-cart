@@ -2,6 +2,8 @@
     <string name="app_name">product-catalog-offline-cart</string>
 
     <!-- Product list -->
+    <string name="products_title">Products</string>
+    <string name="open_cart">Cart, %1$d items</string>
     <string name="product_search_hint">Search products</string>
     <string name="product_search_clear">Clear search</string>
     <string name="product_list_empty">No products found</string>
@@ -19,6 +21,27 @@
     <string name="product_in_stock">%1$d in stock</string>
     <string name="product_out_of_stock">Out of stock</string>
     <string name="product_image_unavailable">Image unavailable</string>
+    <string name="added_to_cart">Added to cart</string>
+    <string name="add_to_cart_failed">Couldn\'t add to cart. Please try again.</string>
+
+    <!-- Cart -->
+    <string name="cart_title">Cart</string>
+    <string name="cart_empty">Your cart is empty</string>
+    <string name="cart_continue_shopping">Continue shopping</string>
+    <string name="cart_clear">Clear cart</string>
+    <string name="cart_clear_confirm_title">Clear cart?</string>
+    <string name="cart_clear_confirm_message">All items will be removed from your cart.</string>
+    <string name="cart_clear_confirm">Clear</string>
+    <string name="cancel">Cancel</string>
+    <string name="cart_unit_price">%1$s each</string>
+    <string name="cart_increase_quantity">Increase quantity of %1$s</string>
+    <string name="cart_decrease_quantity">Decrease quantity of %1$s</string>
+    <string name="cart_remove_item">Remove %1$s from cart</string>
+    <plurals name="cart_total_items">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="cart_total_label">Total</string>
 
     <!-- Errors -->
     <string name="error_network">No internet connection. Check your network and try again.</string>

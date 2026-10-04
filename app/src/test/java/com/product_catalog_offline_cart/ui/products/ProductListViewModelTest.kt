@@ -1,7 +1,9 @@
 package com.product_catalog_offline_cart.ui.products
 
 import com.product_catalog_offline_cart.R
+import com.product_catalog_offline_cart.data.repository.FakeCartRepository
 import com.product_catalog_offline_cart.data.repository.ProductRepository
+import com.product_catalog_offline_cart.domain.model.CartItem
 import com.product_catalog_offline_cart.domain.model.Product
 import com.product_catalog_offline_cart.ui.products.ProductListViewModel.Companion.SEARCH_DEBOUNCE_MILLIS
 import kotlinx.coroutines.CancellationException
@@ -9,7 +11,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -32,6 +36,7 @@ class ProductListViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
     private val repository = FakeProductRepository()
+    private val cartRepository = FakeCartRepository()
 
     @Before
     fun setUp() {
@@ -44,7 +49,7 @@ class ProductListViewModelTest {
     }
 
     private fun TestScope.createLoadedViewModel(): ProductListViewModel =
-        ProductListViewModel(repository).also { advanceUntilIdle() }
+        ProductListViewModel(repository, cartRepository).also { advanceUntilIdle() }
 
     /** Types [query] and waits until the debounced request has finished. */
     private fun TestScope.search(viewModel: ProductListViewModel, query: String) {
@@ -56,7 +61,7 @@ class ProductListViewModelTest {
 
     @Test
     fun `blank query loads products on start`() = runTest(dispatcher) {
-        val viewModel = ProductListViewModel(repository)
+        val viewModel = ProductListViewModel(repository, cartRepository)
         assertEquals(ProductListUiState.Loading, viewModel.uiState.value)
 
         advanceUntilIdle()
@@ -322,6 +327,38 @@ class ProductListViewModelTest {
         assertTrue(repository.searchCalls.isEmpty())
         assertEquals(1, repository.getProductsCalls)
         assertEquals(ProductListUiState.Success(allProducts), viewModel.uiState.value)
+    }
+
+    // endregion
+
+    // region Cart badge
+
+    @Test
+    fun `cart badge counts total quantity not unique products`() = runTest(dispatcher) {
+        cartRepository.items.value = listOf(
+            CartItem(productId = 1, title = "Mascara", price = 9.99, thumbnailUrl = "", quantity = 2),
+            CartItem(productId = 2, title = "iPhone 9", price = 549.0, thumbnailUrl = "", quantity = 3),
+        )
+        val viewModel = createLoadedViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.cartItemCount.collect {} }
+        advanceUntilIdle()
+
+        assertEquals(5, viewModel.cartItemCount.value)
+    }
+
+    @Test
+    fun `cart badge is zero for an empty cart and follows changes`() = runTest(dispatcher) {
+        val viewModel = createLoadedViewModel()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.cartItemCount.collect {} }
+        advanceUntilIdle()
+        assertEquals(0, viewModel.cartItemCount.value)
+
+        cartRepository.items.value = listOf(
+            CartItem(productId = 1, title = "Mascara", price = 9.99, thumbnailUrl = "", quantity = 4),
+        )
+        advanceUntilIdle()
+
+        assertEquals(4, viewModel.cartItemCount.value)
     }
 
     // endregion

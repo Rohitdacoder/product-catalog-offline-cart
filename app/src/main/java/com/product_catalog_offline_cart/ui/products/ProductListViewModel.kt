@@ -7,17 +7,23 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.product_catalog_offline_cart.data.remote.NetworkClient
+import com.product_catalog_offline_cart.data.repository.CartRepository
 import com.product_catalog_offline_cart.data.repository.DefaultProductRepository
 import com.product_catalog_offline_cart.data.repository.ProductRepository
 import com.product_catalog_offline_cart.domain.model.Product
+import com.product_catalog_offline_cart.domain.model.totalItems
+import com.product_catalog_offline_cart.ui.common.cartRepository
 import com.product_catalog_offline_cart.ui.common.toErrorMessageRes
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 sealed interface ProductListUiState {
@@ -30,6 +36,7 @@ sealed interface ProductListUiState {
 
 class ProductListViewModel(
     private val repository: ProductRepository,
+    cartRepository: CartRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ProductListUiState>(ProductListUiState.Loading)
@@ -37,6 +44,11 @@ class ProductListViewModel(
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    /** Total units in the cart (not unique products), for the top bar badge. Read from Room only. */
+    val cartItemCount: StateFlow<Int> = cartRepository.observeCart()
+        .map { it.totalItems() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private var loadJob: Job? = null
 
@@ -102,7 +114,10 @@ class ProductListViewModel(
 
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                ProductListViewModel(DefaultProductRepository(NetworkClient.productApi))
+                ProductListViewModel(
+                    repository = DefaultProductRepository(NetworkClient.productApi),
+                    cartRepository = cartRepository(),
+                )
             }
         }
     }
