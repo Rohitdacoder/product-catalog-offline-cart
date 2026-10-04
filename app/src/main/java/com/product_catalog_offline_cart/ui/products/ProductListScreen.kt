@@ -43,12 +43,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.product_catalog_offline_cart.R
 import com.product_catalog_offline_cart.domain.model.Product
+import com.product_catalog_offline_cart.ui.common.formatPrice
 import com.product_catalog_offline_cart.ui.theme.ProductcatalogofflinecartTheme
-import java.util.Locale
 
 /** Stateful entry point: connects the ViewModel to the stateless [ProductListScreen]. */
 @Composable
 fun ProductListRoute(
+    onProductClick: (productId: Int) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProductListViewModel = viewModel(factory = ProductListViewModel.Factory),
 ) {
@@ -60,6 +61,7 @@ fun ProductListRoute(
         searchQuery = searchQuery,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         onRetry = viewModel::retry,
+        onProductClick = onProductClick,
         modifier = modifier,
     )
 }
@@ -70,6 +72,7 @@ fun ProductListScreen(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     onRetry: () -> Unit,
+    onProductClick: (productId: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -89,7 +92,10 @@ fun ProductListScreen(
                     message = stringResource(uiState.messageRes),
                     onRetry = onRetry,
                 )
-                is ProductListUiState.Success -> ProductList(products = uiState.products)
+                is ProductListUiState.Success -> ProductList(
+                    products = uiState.products,
+                    onProductClick = onProductClick,
+                )
             }
         }
     }
@@ -164,20 +170,20 @@ private fun ErrorContent(message: String, onRetry: () -> Unit) = CenteredContent
 }
 
 @Composable
-private fun ProductList(products: List<Product>) {
+private fun ProductList(products: List<Product>, onProductClick: (productId: Int) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(products, key = { it.id }) { product ->
-            ProductItem(product = product)
+            ProductItem(product = product, onClick = { onProductClick(product.id) })
         }
     }
 }
 
 @Composable
-private fun ProductItem(product: Product, modifier: Modifier = Modifier) {
-    Card(modifier = modifier.fillMaxWidth()) {
+private fun ProductItem(product: Product, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -230,9 +236,6 @@ private fun ProductRating(rating: Double) {
     }
 }
 
-// DummyJSON prices are in USD.
-private fun formatPrice(price: Double): String = String.format(Locale.US, "$%.2f", price)
-
 private val previewProducts = listOf(
     Product(
         id = 1, title = "Essence Mascara Lash Princess", description = "", category = "beauty",
@@ -255,6 +258,7 @@ private fun ProductListSuccessPreview() {
             searchQuery = "",
             onSearchQueryChange = {},
             onRetry = {},
+            onProductClick = {},
         )
     }
 }
@@ -268,6 +272,7 @@ private fun ProductListErrorPreview() {
             searchQuery = "phone",
             onSearchQueryChange = {},
             onRetry = {},
+            onProductClick = {},
         )
     }
 }

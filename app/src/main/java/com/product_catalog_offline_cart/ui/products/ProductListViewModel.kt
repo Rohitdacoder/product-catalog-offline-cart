@@ -6,11 +6,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.product_catalog_offline_cart.R
 import com.product_catalog_offline_cart.data.remote.NetworkClient
 import com.product_catalog_offline_cart.data.repository.DefaultProductRepository
 import com.product_catalog_offline_cart.data.repository.ProductRepository
 import com.product_catalog_offline_cart.domain.model.Product
+import com.product_catalog_offline_cart.ui.common.toErrorMessageRes
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -19,8 +19,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
-import java.io.IOException
 
 sealed interface ProductListUiState {
     data object Loading : ProductListUiState
@@ -89,7 +87,7 @@ class ProductListViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                ProductListUiState.Error(e.toMessageRes())
+                ProductListUiState.Error(e.toErrorMessageRes())
             }
             // Never let a superseded request overwrite the UI.
             ensureActive()
@@ -110,9 +108,3 @@ class ProductListViewModel(
     }
 }
 
-@StringRes
-private fun Exception.toMessageRes(): Int = when (this) {
-    is IOException -> R.string.error_network
-    is HttpException -> R.string.error_server
-    else -> R.string.error_unknown
-}

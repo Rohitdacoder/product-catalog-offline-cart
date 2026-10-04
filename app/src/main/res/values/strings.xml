@@ -9,6 +9,17 @@
     <string name="product_rating">Rating %1$.1f</string>
     <string name="retry">Retry</string>
 
+    <!-- Product details -->
+    <string name="product_details_title">Product details</string>
+    <string name="navigate_back">Back</string>
+    <string name="add_to_cart">Add to cart</string>
+    <string name="product_category">Category</string>
+    <string name="product_brand">Brand</string>
+    <string name="product_stock">Stock</string>
+    <string name="product_in_stock">%1$d in stock</string>
+    <string name="product_out_of_stock">Out of stock</string>
+    <string name="product_image_unavailable">Image unavailable</string>
+
     <!-- Errors -->
     <string name="error_network">No internet connection. Check your network and try again.</string>
     <string name="error_server">The server could not be reached. Please try again.</string>
