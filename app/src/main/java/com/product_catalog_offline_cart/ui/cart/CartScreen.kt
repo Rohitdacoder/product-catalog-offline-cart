@@ -25,7 +25,6 @@ import androidx.compose.material.icons.materialPath
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -59,6 +58,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.product_catalog_offline_cart.R
 import com.product_catalog_offline_cart.domain.model.CartItem
+import com.product_catalog_offline_cart.ui.common.LoadingContent
 import com.product_catalog_offline_cart.ui.common.formatPrice
 import com.product_catalog_offline_cart.ui.theme.ProductcatalogofflinecartTheme
 
@@ -153,13 +153,6 @@ fun CartScreen(
             },
             onDismiss = { showClearDialog = false },
         )
-    }
-}
-
-@Composable
-private fun LoadingContent() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
     }
 }
 

@@ -7,12 +7,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.product_catalog_offline_cart.R
-import com.product_catalog_offline_cart.data.remote.NetworkClient
 import com.product_catalog_offline_cart.data.repository.CartRepository
-import com.product_catalog_offline_cart.data.repository.DefaultProductRepository
 import com.product_catalog_offline_cart.data.repository.ProductRepository
+import com.product_catalog_offline_cart.di.appContainer
 import com.product_catalog_offline_cart.domain.model.Product
-import com.product_catalog_offline_cart.ui.common.cartRepository
 import com.product_catalog_offline_cart.ui.common.toErrorMessageRes
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -85,9 +83,10 @@ class ProductDetailViewModel(
     companion object {
         fun factory(productId: Int): ViewModelProvider.Factory = viewModelFactory {
             initializer {
+                val container = appContainer()
                 ProductDetailViewModel(
-                    repository = DefaultProductRepository(NetworkClient.productApi),
-                    cartRepository = cartRepository(),
+                    repository = container.productRepository,
+                    cartRepository = container.cartRepository,
                     productId = productId,
                 )
             }

@@ -6,10 +6,10 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.product_catalog_offline_cart.data.repository.CartRepository
+import com.product_catalog_offline_cart.di.appContainer
 import com.product_catalog_offline_cart.domain.model.CartItem
 import com.product_catalog_offline_cart.domain.model.totalItems
 import com.product_catalog_offline_cart.domain.model.totalPrice
-import com.product_catalog_offline_cart.ui.common.cartRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -62,7 +62,7 @@ class CartViewModel(
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer { CartViewModel(cartRepository()) }
+            initializer { CartViewModel(appContainer().cartRepository) }
         }
     }
 }

@@ -21,9 +21,7 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,6 +48,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.product_catalog_offline_cart.R
 import com.product_catalog_offline_cart.domain.model.Product
+import com.product_catalog_offline_cart.ui.common.CenteredContent
+import com.product_catalog_offline_cart.ui.common.ErrorContent
+import com.product_catalog_offline_cart.ui.common.LoadingContent
 import com.product_catalog_offline_cart.ui.common.formatPrice
 import com.product_catalog_offline_cart.ui.theme.ProductcatalogofflinecartTheme
 
@@ -120,7 +122,7 @@ private fun CartButton(itemCount: Int, onClick: () -> Unit) {
         ) {
             Icon(
                 Icons.Filled.ShoppingCart,
-                contentDescription = stringResource(R.string.open_cart, itemCount),
+                contentDescription = pluralStringResource(R.plurals.open_cart, itemCount, itemCount),
             )
         }
     }
@@ -185,23 +187,6 @@ private fun ProductSearchField(
 }
 
 @Composable
-private fun CenteredContent(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        content()
-    }
-}
-
-@Composable
-private fun LoadingContent() = CenteredContent {
-    CircularProgressIndicator()
-}
-
-@Composable
 private fun EmptyContent(query: String) = CenteredContent {
     Text(
         text = if (query.isEmpty()) {
@@ -212,21 +197,6 @@ private fun EmptyContent(query: String) = CenteredContent {
         style = MaterialTheme.typography.bodyLarge,
         textAlign = TextAlign.Center,
     )
-}
-
-@Composable
-private fun ErrorContent(message: String, onRetry: () -> Unit) = CenteredContent {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = onRetry) {
-            Text(stringResource(R.string.retry))
-        }
-    }
 }
 
 @Composable

@@ -1,9 +1,12 @@
 <resources>
-    <string name="app_name">product-catalog-offline-cart</string>
+    <string name="app_name">Product Catalog</string>
 
     <!-- Product list -->
     <string name="products_title">Products</string>
-    <string name="open_cart">Cart, %1$d items</string>
+    <plurals name="open_cart">
+        <item quantity="one">Cart, %1$d item</item>
+        <item quantity="other">Cart, %1$d items</item>
+    </plurals>
     <string name="product_search_hint">Search products</string>
     <string name="product_search_clear">Clear search</string>
     <string name="product_list_empty">No products found</string>
